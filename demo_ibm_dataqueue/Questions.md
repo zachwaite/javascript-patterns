@@ -1,0 +1,2 @@
+- what happens if the data queue fills up?
+- how to handle system restarts
