@@ -1,0 +1,12 @@
+{
+  "name": "lfd_puppeteer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "author": "Telescope Casual Furniture",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^19.8.0"
+  }
+}
