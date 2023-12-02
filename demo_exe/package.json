@@ -1,0 +1,20 @@
+{
+  "name": "demo_exe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "build": "webpack ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "puppeteer-core": "^20.7.3"
+  },
+  "pkg", 
+}
