@@ -1,0 +1,26 @@
+{
+  "name": "eventsourcing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/waiteperspectives/patterns.git"
+  },
+  "keywords": [
+    "patterns"
+  ],
+  "author": "Waite Perspectives, LLC - Zach Waite",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/waiteperspectives/patterns/issues"
+  },
+  "homepage": "https://github.com/waiteperspectives/patterns#readme",
+  "devDependencies": {
+    "jest": "^26.4.0"
+  },
+  "dependencies": {}
+}
