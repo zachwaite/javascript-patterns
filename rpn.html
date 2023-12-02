@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visual Reverse Polish Notation</title>
+    <meta name="description" content="A visual representation and solver of Reverse Polish Notation (RPN)">
+    <meta name="author" content="Linden Wright">
+    <link href='http://fonts.googleapis.com/css?family=Monda:400,700' rel='stylesheet' type='text/css'>
+    <style type="text/css">
+        body {
+            font-family: 'Monda', sans-serif;
+        }
+
+        #equation {
+            font-size: 20px;
+        }
+        #graphwrap {
+            height: 500px;
+        }
+
+        .error {
+            color: #991111;
+        }
+
+        input {
+            width: 300px;
+            height: 25px;
+            font-size: 20px;
+            line-height: 20px;
+        }
+
+            /* styling for the input's placeholder text, which doesn't inherit from body */
+        ::-webkit-input-placeholder {
+            font-family: 'Monda', sans-serif;
+        }
+
+        :-moz-placeholder {
+            /* Firefox 18- */
+            font-family: 'Monda', sans-serif;
+        }
+
+        ::-moz-placeholder {
+            /* Firefox 19+ */
+            font-family: 'Monda', sans-serif;
+        }
+
+        :-ms-input-placeholder {
+            font-family: 'Monda', sans-serif;
+        }
+
+            /* Styling lists */
+        ul {
+            margin: 0px;
+        }
+
+        li {
+            list-style: none;
+            text-indent: -10px;
+            padding-left: 1em;
+            padding-bottom: 5px;
+        }
+
+        li:before {
+            content: "\0203a \020 \020";
+        }
+
+        #footer {
+            font-size: 12px;
+        }
+
+            /* Visualization Styles */
+        svg text {
+            font-family: 'Monda', sans-serif;
+            font-size: 20px;
+        }
+
+        .node circle {
+            fill: #ccc;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+    </style>
+    <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js'></script>
+    <script type='text/javascript' src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+</head>
+<script type='text/javascript'>
+$(function () {
+    /**
+     *  Human readable labels for the operators and an evaluation function to avoid .eval()
+     */
+    var OperatorLookup = {
+        "+": {
+            label: "addition",
+            evalFunc: function (a, b) {
+                return a + b;
+            }
+        },
+        "-": {
+            label: "subtraction",
+            evalFunc: function (a, b) {
+                return a - b;
+            }
+        },
+        "*": {
+            label: "multiplication",
+            evalFunc: function (a, b) {
+                return a * b;
+            }
+        },
+        "/": {
+            label: "division",
+            evalFunc: function (a, b) {
+                return a / b;
+            }
+        }
+    }
+
+
+    /**
+     * Takes a user entered string and returns a list of valid operators and operands.
+     *
+     * @param expression string
+     * @returns object containing valid tokens and ignored tokens
+     */
+    function tokenize(expression) {
+        if (!expression) {
+            return {valid: [], ignored: []};
+        }
+        // get all the valid tokens from the raw string. Ignores non valid tokens
+        var rawtokens = expression.match(/(\d+|[\+\-\*\/])/g) || []; // defaults to empty array
+        // get all ignored tokens besides whitespace
+        var ignoredtokens = expression.match(/[^\d+\+\-\*\/\s]/g) || []; // defaults to empty array
+        // clean the tokens up by parsing them into floats or operator strings
+        var validtokens = [];
+        rawtokens.forEach(function (token) {
+            if (parseFloat(token)) {
+                validtokens.push(parseFloat(token));
+            } else {
+                validtokens.push(token);
+            }
+        });
+        return {valid: validtokens, ignored: ignoredtokens};
+    }
+
+    /**
+     * Takes a list of tokens and generates the steps needed to solve the expression
+     * @param tokens NOTE: destroys token array, pass a copy if original array needs to be preserved
+     * @returns object containing the answer and the steps to get it
+     */
+    function parseExpression(tokens) {
+        var steps = [];
+        var stack = []; // maintain a list of the current operands
+        while (tokens.length) {
+            var currenttoken = tokens.shift();
+            if (typeof(currenttoken) == "number") { // if it's a number, add it to the stack
+                stack.push({value: currenttoken, roundedvalue: currenttoken}); // this is a leaf node, only has value
+            } else { // it must be an operator, so apply the operator to the stack
+                // get information about this operator
+                var operatorinfo = OperatorLookup[currenttoken];
+
+                // sanity checks
+                if (!operatorinfo) {
+                    throw SyntaxError("Unknown operator '" + currenttoken + "'.");
+                }
+                if (stack.length < 2) {
+                    throw SyntaxError("The " + operatorinfo.label + " operator requires at least two operands.")
+                }
+
+                // calculate the value of the current operation
+                var b = stack.pop(); // the last operand on the stack is the second operand (for division)
+                var a = stack.pop();
+                var value = operatorinfo.evalFunc(a.value, b.value);
+                var roundedvalue = Math.round(value * 1000) / 1000  //round result to 3 decimal places
+
+                // create a new node with children for our tree
+                var node = {
+                    left: a,
+                    right: b,
+                    operator: currenttoken,
+                    infix: a.roundedvalue + " " + currenttoken + " " + b.roundedvalue + " = " + roundedvalue,
+                    roundedvalue: roundedvalue,
+                    value: value
+                };
+                stack.push(node);
+
+                // add this step to our step array for displaying in the list
+                steps.push(node.infix);
+            }
+        }
+
+        // we should only have one item left on the stack after processing
+        if (stack.length > 1) {
+            throw SyntaxError("Too many numbers, try adding another operator.");
+        }
+
+        // the number left on the stack is the value of the given token set.
+        // note that we leave this un-rounded
+        return {answer: stack[0].value, tree: stack[0], steps: steps};
+    }
+
+
+    /**
+     * whenever they change the input, update the rpn in real time
+     * keyup is used so that the current character being typed is captured
+     */
+    $("#rpninput").keyup(function (evt) {
+        // clear out any output fields
+        $(".clears").empty();
+
+        // get the input's value and tokenize it
+        var currentexpression = $("#rpninput").val();
+        var tokens = tokenize(currentexpression);
+
+        // inform user about ignored tokens
+        if (tokens.ignored.length) {
+            $('#notice').text("Some characters ingnored: " + tokens.ignored.join(", "));
+        }
+
+        // allow the user to type at least 3 tokens before throwing errors
+        if (tokens.valid.length < 3) {
+            return;
+        }
+
+        // try to evaluate the expression, display the answer or an error
+        try {
+            var parse = parseExpression(tokens.valid);
+            // display the answer
+            $("#answer").text(parse.answer);
+            // display the steps in text
+            parse.steps.forEach(function (step, index) {
+                var title = "<b>Step " + (index + 1) + ":</b> ";
+                $("#solution").append("<li>" + title + step + "</li>");
+            });
+            // display the steps in graph
+            generateGraph(parse.tree);
+        } catch (e) {
+            $("#error").text(e.message);
+        }
+    });
+
+    /**
+     *  D3 visualization of RPN
+     */
+    var graphWidth = 500,
+        graphHeight = 500,
+        graphPadding = 50;
+
+    /**
+     * Creates a visual representation of the passed tree.
+     * @param dataroot tree with nodes that have 'value', 'infix', 'left', and 'right' attributes,
+     *                 or leaves with a 'value' attribute
+     */
+    function generateGraph(dataroot) {
+        // using a cluster layout to get a dendogram chart
+        var tree = d3.layout.cluster()
+            // add padding to the size of the graph
+                .size([graphHeight - (graphPadding * 2), graphWidth - (graphPadding * 2)])
+                .children(function (d) {
+                    if (d.left && d.right) {
+                        return [ d.left, d.right ];
+                    }
+                    return null;
+                });
+
+        // run the data through the layout algorithm to get the positions
+        var nodes = tree.nodes(dataroot);
+        // get the links between all the nodes
+        var links = tree.links(nodes);
+        // define a function to return the bezier path between links
+        // (changing the projection for a bottom up graph, since the root of the tree is the solution)
+        var diagonal = d3.svg.diagonal()
+                .projection(function (d) {
+                    return [ d.x, graphHeight - graphPadding - d.y];
+                });
+
+        // create our svg element
+        var graph = d3.select("#graphwrap")
+                .append("svg")
+                .attr("width", graphWidth)
+                .attr("height", graphHeight);
+
+        // display the links between nodes
+        var link = graph.selectAll(".link")
+                .data(links)
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", diagonal);
+
+        // display the nodes
+        var node = graph.selectAll(".node")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                // the translation here is to allow for the projection so that we have a bottom up graph
+                .attr("transform", function (d) {
+                    return "translate(" + d.x + "," + (graphHeight - graphPadding - d.y) + ")";
+                })
+        // nodes are made of a circle ..
+        node.append("circle")
+                .attr("r", 4);
+        // .. and a label (label is added last so that it is always on top in the z-index.
+        node.append("text")
+                // centering text a 0 above node
+                .style("text-anchor", "middle")
+                .attr("dx", 0)
+                .attr("dy", function (d) { // set the root node's label under the node, everything else above
+                    return d.depth == 0 ? 25 : -10;
+                })
+                .text(function (d) {
+                    if (!d.children) { // leaf nodes have only a value
+                        return d.value;
+                    } // everything else has a infix representation
+                    return d.infix;
+                });
+    }
+});
+</script>
+<body>
+<div id="equation">
+    <input type="text" id="rpninput" placeholder="type your rpn expression here"></input> = <span id="answer" class="clears"></span>
+</div>
+<div id="notice" class="clears error"></div>
+<div id="error" class="clears error"></div>
+<br/>
+<h3 id="zzz">Infix Translation:</h3>
+<ul id="solution" class="clears"></ul>
+<h3>Visualized as Graph:</h3>
+<div id="graphwrap" class="clears"></div>
+
+<div id="footer">
+    Made by <a href="http://lindenwright.com/">Linden Wright</a>, using <a href="http://d3js.org/">d3.js</a> and
+    <a href="http://jquery.com/">jQuery.</a>
+</div>
+
+</body>
+</html>
