@@ -1,0 +1,25 @@
+{
+  "name": "value-object",
+  "version": "1.0.0",
+  "description": "Implementation of value object pattern using ES6 classes",
+  "main": "valueObject.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/waiteperspectives/patterns.git"
+  },
+  "keywords": [
+    "patterns"
+  ],
+  "author": "Zach Waite - Waite Perspectives, LLC",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/waiteperspectives/patterns/issues"
+  },
+  "homepage": "https://github.com/waiteperspectives/patterns#readme",
+  "devDependencies": {
+    "jest": "^26.1.0"
+  }
+}
